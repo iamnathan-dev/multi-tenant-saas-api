@@ -9,7 +9,7 @@ export class AuthController {
       res.json({
         status: "success",
         data: {
-          user,
+          user_data: user,
         },
       });
     } catch (error: any) {
@@ -28,6 +28,66 @@ export class AuthController {
         status: "success",
         data: {
           message: newUser,
+        },
+      });
+    } catch (error: any) {
+      const status = error.statusCode || 500;
+      res
+        .status(status)
+        .json({ status: "error", message: (error as Error).message });
+    }
+  }
+
+  static async refreshToken(req: Request, res: Response) {
+    try {
+      const { refreshToken } = req.body;
+      const newAccessToken = await AuthService.refreshToken(refreshToken);
+      res.json({
+        status: "success",
+        data: {
+          token: newAccessToken,
+        },
+      });
+    } catch (error: any) {
+      const status = error.statusCode || 500;
+      res
+        .status(status)
+        .json({ status: "error", message: (error as Error).message });
+    }
+  }
+
+  static async verifyEmail(req: Request, res: Response) {
+    try {
+      const { token } = req.query;
+      if (typeof token !== "string") {
+        throw new Error("Invalid token");
+      }
+      await AuthService.verifyEmail(token);
+      res.json({
+        status: "success",
+        data: {
+          message: "Email verified successfully!",
+        },
+      });
+    } catch (error: any) {
+      const status = error.statusCode || 500;
+      res
+        .status(status)
+        .json({ status: "error", message: (error as Error).message });
+    }
+  }
+
+  static async logout(req: Request, res: Response) {
+    try {
+      const userId = (req as any).userId;
+      if (!userId) {
+        throw new Error("Unauthorized");
+      }
+      await AuthService.logout(userId);
+      res.json({
+        status: "success",
+        data: {
+          message: "Logged out successfully!",
         },
       });
     } catch (error: any) {

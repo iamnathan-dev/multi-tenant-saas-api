@@ -1,19 +1,26 @@
 import { transporter } from "@/config/nodemailer.config";
+import path from "path";
+import pug from "pug";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export class EmailService {
   static async sendVerificationEmail(to: string, token: string) {
-    const verificationLink = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+
+    const compiledFunction = pug.compileFile(
+      path.join(__dirname, `../views/email-verification.pug`),
+    );
+
+    const html = compiledFunction({ verificationUrl });
 
     const mailOptions = {
       from: "Zone <no-reply@zone.com>",
       to,
       subject: "Verify Your Email",
-      html: `
-        <p>Hi there,</p>
-        <p>Thank you for registering! Please click the link below to verify your email address:</p>
-        <a href="${verificationLink}">Verify Email</a>
-        <p>If you did not create an account, please ignore this email.</p>
-      `,
+      html,
     };
 
     await transporter.sendMail(mailOptions);
