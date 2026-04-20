@@ -36,6 +36,7 @@ This project is a multi-tenant Software as a Service (SaaS) API designed to hand
   ACCESS_TOKEN_SECRET=your-access-token-secret
   REFRESH_TOKEN_SECRET=your-refresh-token-secret
   EMAIL_VERIFICATION_TOKEN_SECRET=your-email-verification-secret
+  FRONTEND_URL=your-frontend-url
   EMAIL_HOST=smtp.example.com
   EMAIL_PORT=587
   EMAIL_USER=your-email-user
