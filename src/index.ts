@@ -1,12 +1,35 @@
 import express, { type Request, type Response } from "express";
+// @ts-ignore-next-line
+import { prisma } from "./prisma/client";
+import { errorHandler } from "./middleware/errorHandler.middleware.js";
+import authRoutes from "./routes/auth.routes.js";
+import { transporter } from "./config/nodemailer.config";
 
 const app = express();
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(errorHandler);
+
 const PORT = process.env.PORT || 3000;
 
-app.get("/", (req: Request, res: Response) => {
-  res.send("Hello, Multi-Tenant SaaS API!");
-});
+app.use("/api/auth", authRoutes);
 
-app.listen(PORT, () => {
-  console.log(`Server is running on PORT: ${PORT}`);
-});
+const start = async () => {
+  try {
+    await prisma.$connect();
+    console.log("✅ Database Connection Successful");
+
+    await transporter.verify();
+    console.log("✅ Email transporter is ready");
+
+    app.listen(PORT, () => {
+      console.log(`🚀 Server is running on PORT: ${PORT}`);
+    });
+  } catch (error) {
+    console.error("❌ Something went wrong:", error);
+    process.exit(1);
+  }
+};
+
+start();

@@ -1,0 +1,193 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ENUM
+
+enum OAuthProvider {
+  google
+  github
+}
+
+enum Role {
+  owner
+  admin
+  member
+}
+
+enum TaskStatus {
+  todo
+  in_progress
+  done
+}
+
+// User
+
+model User {
+  id                     String  @id @default(uuid())
+  email                  String  @unique
+  passwordHash           String?
+  fullName               String?
+  avatarUrl              String?
+  emailVerificationToken String?
+  isEmailVerified        Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // relations
+  oauthAccounts   OAuthAccount[]
+  memberships     Membership[]
+  ownedOrgs       Organization[] @relation("OrgOwner")
+  createdProjects Project[]      @relation("ProjectCreator")
+  createdTasks    Task[]         @relation("TaskCreator")
+  assignedTasks   Task[]         @relation("TaskAssignee")
+  refreshTokens   RefreshToken[]
+  auditLogs       AuditLog[]
+  Invitation      Invitation[]
+}
+
+model OAuthAccount {
+  id             String        @id @default(uuid())
+  userId         String
+  provider       OAuthProvider
+  providerUserId String
+  accessToken    String?
+  refreshToken   String?
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+}
+
+model Organization {
+  id   String @id @default(uuid())
+  name String
+
+  ownerId String
+  owner   User   @relation("OrgOwner", fields: [ownerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships Membership[]
+  projects    Project[]
+  invitations Invitation[]
+  auditLogs   AuditLog[]
+}
+
+model Membership {
+  id             String @id @default(uuid())
+  userId         String
+  organizationId String
+  role           Role
+
+  joinedAt DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+}
+
+model Project {
+  id             String  @id @default(uuid())
+  organizationId String
+  name           String
+  description    String?
+
+  createdById String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User         @relation("ProjectCreator", fields: [createdById], references: [id])
+
+  tasks Task[]
+}
+
+model Task {
+  id        String @id @default(uuid())
+  projectId String
+
+  title       String
+  description String?
+  status      TaskStatus @default(todo)
+
+  assignedToId String?
+  createdById  String
+
+  dueDate DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  assignedTo User? @relation("TaskAssignee", fields: [assignedToId], references: [id])
+  createdBy  User  @relation("TaskCreator", fields: [createdById], references: [id])
+}
+
+model Invitation {
+  id             String @id @default(uuid())
+  organizationId String
+
+  email String
+  role  Role
+
+  token String @unique
+
+  invitedById String
+
+  expiresAt  DateTime
+  acceptedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedBy    User         @relation(fields: [invitedById], references: [id])
+}
+
+model RefreshToken {
+  id     String @id @default(uuid())
+  userId String
+
+  token     String   @unique
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id String @id @default(uuid())
+
+  userId         String?
+  organizationId String?
+
+  action     String
+  entityType String
+  entityId   String
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  user         User?         @relation(fields: [userId], references: [id])
+  organization Organization? @relation(fields: [organizationId], references: [id])
+}

@@ -5,7 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon --exec ts-node src/index.ts",
+    "dev": "pnpm exec tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -21,16 +21,25 @@
   },
   "homepage": "https://github.com/iamnathan-dev/multi-tenant-saas-api#readme",
   "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "argon2": "^0.44.0",
     "dotenv": "^17.4.2",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^8.0.5",
+    "tsconfig-paths": "^4.2.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.6.0",
+    "@types/nodemailer": "^8.0.0",
     "nodemon": "^3.1.14",
+    "prisma": "^5.22.0",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "tsc-node": "^0.0.3",
+    "tsx": "^4.21.0",
     "typescript": "^6.0.3"
   }
 }
