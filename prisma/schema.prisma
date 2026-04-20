@@ -34,13 +34,15 @@ enum TaskStatus {
 // User
 
 model User {
-  id                     String  @id @default(uuid())
-  email                  String  @unique
+  id                     String    @id @default(uuid())
+  email                  String    @unique
   passwordHash           String?
   fullName               String?
   avatarUrl              String?
   emailVerificationToken String?
-  isEmailVerified        Boolean @default(false)
+  isEmailVerified        Boolean   @default(false)
+  resetPasswordToken     String?
+  resetPasswordExpires   DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

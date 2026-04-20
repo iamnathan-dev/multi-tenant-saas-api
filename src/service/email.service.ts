@@ -25,4 +25,23 @@ export class EmailService {
 
     await transporter.sendMail(mailOptions);
   }
+
+  static async sendPasswordResetEmail(to: string, token: string) {
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+
+    const compiledFunction = pug.compileFile(
+      path.join(__dirname, `../views/password-reset.pug`),
+    );
+
+    const html = compiledFunction({ resetUrl });
+
+    const mailOptions = {
+      from: "Zone <no-reply@zone.com>",
+      to,
+      subject: "Reset Your Password",
+      html,
+    };
+
+    await transporter.sendMail(mailOptions);
+  }
 }

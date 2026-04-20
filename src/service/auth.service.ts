@@ -2,12 +2,14 @@ import { prisma } from "@/prisma/client.js";
 import {
   generateAccessToken,
   generateEmailVerificationToken,
+  generatePasswordResetToken,
   generateRefreshToken,
 } from "@/util/generateToken";
 import * as argon2 from "argon2";
 import jwt from "jsonwebtoken";
 import { EmailService } from "./email.service";
 import { ApiError } from "@/util/ApiError";
+import crypto from "crypto";
 
 export const safeUserSelect = {
   id: true,
@@ -176,6 +178,67 @@ export class AuthService {
     });
 
     return updatedUser;
+  }
+
+  static async forgetPassword(email: string) {
+    if (!email) {
+      throw new ApiError("Email is required", 400);
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new ApiError("User not found", 404);
+    }
+
+    const { hashedToken, rawToken } = generatePasswordResetToken();
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetPasswordToken: hashedToken,
+        resetPasswordExpires: new Date(Date.now() + 1000 * 60 * 15), // 15 minutes
+      },
+    });
+
+    // send password reset email with the reset token
+    EmailService.sendPasswordResetEmail(email, rawToken).catch(console.error);
+
+    return "Password reset email sent! Please check your inbox.";
+  }
+
+  static async resetPassword(token: string, newPassword: string) {
+    if (!token || !newPassword) {
+      throw new ApiError("Token and new password are required", 400);
+    }
+
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    const user = await prisma.user.findFirst({
+      where: {
+        resetPasswordToken: hashedToken,
+        resetPasswordExpires: { gt: new Date() },
+      },
+    });
+
+    if (!user) {
+      throw new ApiError("Invalid or expired password reset token", 400);
+    }
+
+    const hashedPassword = await argon2.hash(newPassword);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash: hashedPassword,
+        resetPasswordToken: null,
+        resetPasswordExpires: null,
+      },
+    });
+
+    return "Password has been reset successfully!";
   }
 
   static async logout(userId: string) {

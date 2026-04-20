@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET!;
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET!;
@@ -17,4 +18,14 @@ export const generateEmailVerificationToken = (userId: string) => {
   return jwt.sign({ userId }, EMAIL_VERIFICATION_TOKEN_SECRET, {
     expiresIn: "1d",
   });
+};
+
+export const generatePasswordResetToken = () => {
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(rawToken)
+    .digest("hex");
+
+  return { hashedToken, rawToken };
 };

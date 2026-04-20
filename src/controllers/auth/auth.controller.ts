@@ -1,4 +1,5 @@
 import { AuthService } from "@/service/auth.service.js";
+import { ApiError } from "@/util/ApiError";
 import type { Request, Response } from "express";
 
 export class AuthController {
@@ -60,7 +61,7 @@ export class AuthController {
     try {
       const { token } = req.query;
       if (typeof token !== "string") {
-        throw new Error("Invalid token");
+        throw new ApiError("Invalid token", 400);
       }
       await AuthService.verifyEmail(token);
       res.json({
@@ -77,11 +78,50 @@ export class AuthController {
     }
   }
 
+  static async forgetPassword(req: Request, res: Response) {
+    try {
+      const { email } = req.body;
+      const forgetPasswordResult = await AuthService.forgetPassword(email);
+      res.json({
+        status: "success",
+        data: {
+          message: forgetPasswordResult,
+        },
+      });
+    } catch (error: any) {
+      const status = error.statusCode || 500;
+      res
+        .status(status)
+        .json({ status: "error", message: (error as Error).message });
+    }
+  }
+
+  static async resetPassword(req: Request, res: Response) {
+    try {
+      const { token, newPassword } = req.body;
+      const resetPasswordResult = await AuthService.resetPassword(
+        token,
+        newPassword,
+      );
+      res.json({
+        status: "success",
+        data: {
+          message: resetPasswordResult,
+        },
+      });
+    } catch (error: any) {
+      const status = error.statusCode || 500;
+      res
+        .status(status)
+        .json({ status: "error", message: (error as Error).message });
+    }
+  }
+
   static async logout(req: Request, res: Response) {
     try {
-      const userId = (req as any).userId;
+      const { userId } = req.body;
       if (!userId) {
-        throw new Error("Unauthorized");
+        throw new ApiError("Unauthorized", 401);
       }
       await AuthService.logout(userId);
       res.json({
