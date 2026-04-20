@@ -8,3 +8,4 @@
 /.env.test
 /.env.production
 /src/generated/prisma
+/index.html
