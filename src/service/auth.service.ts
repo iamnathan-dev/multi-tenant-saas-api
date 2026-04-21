@@ -1,25 +1,14 @@
 import { prisma } from "@/prisma/client.js";
 import {
-  generateAccessToken,
   generateEmailVerificationToken,
   generatePasswordResetToken,
-  generateRefreshToken,
 } from "@/util/generateToken";
 import * as argon2 from "argon2";
 import jwt from "jsonwebtoken";
 import { EmailService } from "./email.service";
 import { ApiError } from "@/util/ApiError";
 import crypto from "crypto";
-
-export const safeUserSelect = {
-  id: true,
-  email: true,
-  fullName: true,
-  avatarUrl: true,
-  isEmailVerified: true,
-  createdAt: true,
-  updatedAt: true,
-};
+import { issueTokens, sanitizeUser } from "@/util/auth";
 
 export class AuthService {
   static async register(fullName: string, email: string, password: string) {
@@ -33,7 +22,6 @@ export class AuthService {
     const emailVerificationToken =
       generateEmailVerificationToken(normalizedEmail);
 
-    // check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
@@ -42,15 +30,13 @@ export class AuthService {
       throw new ApiError("User with this email already exists", 400);
     }
 
-    // create new user
-    const newUser = await prisma.user.create({
+    await prisma.user.create({
       data: {
         fullName,
         email,
         passwordHash: hashedPassword,
         emailVerificationToken,
       },
-      select: safeUserSelect,
     });
 
     EmailService.sendVerificationEmail(
@@ -66,20 +52,14 @@ export class AuthService {
       throw new ApiError("Email and password are required", 400);
     }
 
-    // find user by email
     const user = await prisma.user.findUnique({
       where: { email },
-      select: {
-        ...safeUserSelect,
-        passwordHash: true,
-      },
     });
 
     if (!user) {
       throw new ApiError("User not found!", 404);
     }
 
-    // verify password
     const isPasswordValid = await argon2.verify(user.passwordHash!, password);
 
     if (!isPasswordValid) {
@@ -90,23 +70,12 @@ export class AuthService {
       throw new ApiError("Email not verified. Please check your inbox.", 401);
     }
 
-    const accessToken = generateAccessToken(user.id);
-    const refreshToken = generateRefreshToken(user.id);
-
-    await prisma.refreshToken.create({
-      data: {
-        token: refreshToken,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-        user: { connect: { id: user.id } },
-      },
-    });
-
-    const { passwordHash, ...safeUser } = user;
+    const { accessToken, refreshToken } = await issueTokens(user.id);
 
     return {
       accessToken,
       refreshToken,
-      user: safeUser,
+      user: sanitizeUser(user),
     };
   }
 
@@ -115,7 +84,6 @@ export class AuthService {
       throw new ApiError("Refresh token is required", 400);
     }
 
-    // find user by refresh token
     const tokenRecord = await prisma.refreshToken.findFirst({
       where: { token: oldRefreshToken },
       include: { user: true },
@@ -125,24 +93,17 @@ export class AuthService {
       throw new ApiError("Invalid refresh token", 400);
     }
 
-    // verify refresh token
     try {
       jwt.verify(oldRefreshToken, process.env.REFRESH_TOKEN_SECRET!);
     } catch (err) {
       throw new ApiError("Invalid refresh token", 400);
     }
 
-    const newAccessToken = generateAccessToken(tokenRecord.user.id);
-    const newRefreshToken = generateRefreshToken(tokenRecord.user.id);
-
-    await prisma.refreshToken.update({
-      where: { id: tokenRecord.id },
-      data: { token: newRefreshToken },
-    });
+    const { accessToken, refreshToken } = await issueTokens(tokenRecord.userId);
 
     return {
-      accessToken: newAccessToken,
-      refreshToken: newRefreshToken,
+      accessToken,
+      refreshToken,
     };
   }
 
@@ -151,7 +112,6 @@ export class AuthService {
       throw new ApiError("Verification token is required", 400);
     }
 
-    // find user by verification token
     const user = await prisma.user.findFirst({
       where: { emailVerificationToken: token },
     });
@@ -160,24 +120,21 @@ export class AuthService {
       throw new ApiError("Invalid verification token", 400);
     }
 
-    // verify token
     try {
       jwt.verify(token, process.env.EMAIL_VERIFICATION_TOKEN_SECRET!);
     } catch (err) {
       throw new ApiError("Invalid verification token", 400);
     }
 
-    // update user's email verification status
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
         isEmailVerified: true,
         emailVerificationToken: null,
       },
-      select: safeUserSelect,
     });
 
-    return updatedUser;
+    return sanitizeUser(updatedUser);
   }
 
   static async forgetPassword(email: string) {
@@ -203,7 +160,6 @@ export class AuthService {
       },
     });
 
-    // send password reset email with the reset token
     EmailService.sendPasswordResetEmail(email, rawToken).catch(console.error);
 
     return "Password reset email sent! Please check your inbox.";

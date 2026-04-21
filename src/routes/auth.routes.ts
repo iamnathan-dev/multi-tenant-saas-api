@@ -14,5 +14,7 @@ authRoutes.post("/logout", AuthController.logout);
 
 // OAuth routes
 authRoutes.post("/oauth/google", OAuthController.googleOAuth);
+authRoutes.get("/oauth/github/callback", OAuthController.githubCallback);
+authRoutes.get("/oauth/github/redirect", OAuthController.githubRedirect);
 
 export default authRoutes;

@@ -1,9 +1,12 @@
 import { prisma } from "@/prisma/client";
 import { OAuthService } from "@/service/oauth.service";
+import { ApiError } from "@/util/ApiError";
+import { issueTokens, sanitizeUser } from "@/util/auth";
 import {
   generateAccessToken,
   generateRefreshToken,
 } from "@/util/generateToken";
+import { OAuthProvider } from "@prisma/client";
 import { Request, Response } from "express";
 
 export class OAuthController {
@@ -12,66 +15,25 @@ export class OAuthController {
       const { token } = req.body;
 
       const googleUser = await OAuthService.verifyGoogleToken(token);
-      const user = await prisma.user.findUnique({
-        where: { email: googleUser.email },
-      });
 
-      if (!user) {
-        const newUser = await prisma.user.create({
-          data: {
-            email: googleUser.email,
-            fullName: googleUser.name,
-            avatarUrl: googleUser.avatar,
-            isEmailVerified: true,
-          },
-        });
-
-        const { passwordHash, ...safeUser } = newUser;
-
-        return res.status(201).json({
-          status: "success",
-          data: {
-            user_data: safeUser,
-          },
-        });
-      }
-
-      const existingOAuth = await prisma.oAuthAccount.findFirst({
-        where: {
-          provider: "google",
+      const { user, isNewUser } = await OAuthService.handleOAuthLogin(
+        {
           providerUserId: googleUser.googleId,
+          email: googleUser.email,
+          username: googleUser.name,
+          avatarUrl: googleUser.avatar,
         },
-      });
+        OAuthProvider.google,
+      );
 
-      if (!existingOAuth) {
-        await prisma.oAuthAccount.create({
-          data: {
-            provider: "google",
-            providerUserId: googleUser.googleId,
-            userId: user.id,
-          },
-        });
-      }
+      const { accessToken, refreshToken } = await issueTokens(user.id);
 
-      const accessToken = generateAccessToken(user.id);
-      const refreshToken = generateRefreshToken(user.id);
-
-      await prisma.refreshToken.create({
-        data: {
-          token: refreshToken,
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-          user: { connect: { id: user.id } },
-        },
-      });
-
-      const { passwordHash, ...safeUser } = user;
-
-      res.status(200).json({
+      res.status(isNewUser ? 201 : 200).json({
         status: "success",
         data: {
-          token: accessToken,
+          accessToken,
           refreshToken,
-          user_data: safeUser,
+          user_data: sanitizeUser(user),
         },
       });
     } catch (error: any) {
@@ -80,5 +42,62 @@ export class OAuthController {
         .status(statusCode)
         .json({ status: "error", message: (error as Error).message });
     }
+  }
+
+  static async githubCallback(req: Request, res: Response) {
+    try {
+      const { code, state } = req.query;
+
+      if (!code) {
+        throw new ApiError("Missing authorization code", 400);
+      }
+
+      let returnUrl = Buffer.from(state as string, "base64").toString("utf-8");
+      if (returnUrl.startsWith("aHR0")) {
+        returnUrl = Buffer.from(returnUrl, "base64").toString("utf-8");
+      }
+
+      const accessToken = await OAuthService.exchangeGitHubCode(code as string);
+
+      const githubUser = await OAuthService.getGitHubUser(accessToken);
+
+      const { user, isNewUser } = await OAuthService.handleOAuthLogin(
+        {
+          providerUserId: githubUser.githubId,
+          email: githubUser.email,
+          username: githubUser.username,
+          avatarUrl: githubUser.avatarUrl,
+        },
+        OAuthProvider.github,
+      );
+
+      const tokens = await issueTokens(user.id);
+
+      res.redirect(
+        `${returnUrl}?accessToken=${tokens.accessToken}` +
+          `&refreshToken=${tokens.refreshToken}` +
+          `&new=${isNewUser}`,
+      );
+    } catch (error: any) {
+      const statusCode = error.statusCode || 500;
+      res
+        .status(statusCode)
+        .json({ status: "error", message: (error as Error).message });
+    }
+  }
+
+  static async githubRedirect(req: Request, res: Response) {
+    const state =
+      (req.query.returnUrl as string) ||
+      process.env.FRONTEND_URL ||
+      "http://localhost:5000";
+
+    const url =
+      `https://github.com/login/oauth/authorize` +
+      `?client_id=${process.env.GITHUB_CLIENT_ID}` +
+      `&scope=user:email` +
+      `&state=${Buffer.from(state).toString("base64")}`;
+
+    res.redirect(url);
   }
 }

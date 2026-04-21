@@ -22,8 +22,10 @@
   "homepage": "https://github.com/iamnathan-dev/multi-tenant-saas-api#readme",
   "dependencies": {
     "@prisma/client": "^5.22.0",
+    "@types/axios": "^0.14.4",
     "@types/pug": "^2.0.10",
     "argon2": "^0.44.0",
+    "axios": "^1.15.1",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "google-auth-library": "^10.6.2",
