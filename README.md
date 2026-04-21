@@ -1,4 +1,3 @@
-````md
 # TeamFlow API – Multi-Tenant SaaS Backend
 
 ## 📌 Description
@@ -42,6 +41,7 @@ This project demonstrates real-world backend engineering patterns including auth
 - Projects within organizations
 - Task creation, assignment, and status tracking:
   - `todo`, `in_progress`, `done`
+
 - Soft delete + restore support
 
 ### ✉️ Invitation System
@@ -92,6 +92,7 @@ This project demonstrates real-world backend engineering patterns including auth
   - Permissions
   - Memberships
   - Projects
+
 - Cache invalidation strategies
 
 ### 📡 Real-Time (Optional)
@@ -134,7 +135,6 @@ cd multi-tenant-saas-api
 
 pnpm install
 ```
-````
 
 > You can also use `npm install` or `yarn install`, but **pnpm is recommended**.
 
@@ -284,6 +284,10 @@ chore: update dependencies
 - Backend-only project (no frontend included)
 - Billing and advanced analytics are out of scope (for now)
 
-```
+---
 
-```
+If you want next step improvements, I can help you add:
+
+- Swagger/OpenAPI docs
+- RBAC middleware boilerplate
+- Production folder architecture (clean architecture / DDD style)
