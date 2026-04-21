@@ -1,4 +1,4 @@
-import { AuthService } from "@/service/auth.service.js";
+import { AuthService } from "@/service/auth/auth.service.js";
 import { ApiError } from "@/util/ApiError";
 import type { Request, Response } from "express";
 

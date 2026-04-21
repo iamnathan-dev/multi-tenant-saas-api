@@ -1,5 +1,5 @@
 import { prisma } from "@/prisma/client";
-import { OAuthService } from "@/service/oauth.service";
+import { OAuthService } from "@/service/auth/oauth.service";
 import { ApiError } from "@/util/ApiError";
 import { issueTokens, sanitizeUser } from "@/util/auth";
 import {
