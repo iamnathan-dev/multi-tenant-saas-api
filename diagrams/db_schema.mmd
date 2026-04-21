@@ -1,4 +1,5 @@
 erDiagram
+
     User {
         uuid id PK
         string email UK
@@ -13,10 +14,19 @@ erDiagram
         datetime updatedAt
     }
 
+    Session {
+        uuid id PK
+        uuid userId FK
+        string ipAddress
+        string userAgent
+        datetime lastSeen
+        datetime createdAt
+    }
+
     OAuthAccount {
         uuid id PK
         uuid userId FK
-        enum provider
+        OAuthProvider provider
         string providerUserId
         string accessToken
         string refreshToken
@@ -27,16 +37,29 @@ erDiagram
         uuid id PK
         string name
         uuid ownerId FK
+        Plan plan
         datetime createdAt
         datetime updatedAt
+        datetime deletedAt
     }
 
     Membership {
         uuid id PK
         uuid userId FK
         uuid organizationId FK
-        enum role
+        Role role
         datetime joinedAt
+    }
+
+    Permission {
+        uuid id PK
+        string name UK
+    }
+
+    RolePermission {
+        uuid id PK
+        Role role
+        uuid permissionId FK
     }
 
     Project {
@@ -47,6 +70,13 @@ erDiagram
         uuid createdById FK
         datetime createdAt
         datetime updatedAt
+        datetime deletedAt
+    }
+
+    ProjectMember {
+        uuid id PK
+        uuid projectId FK
+        uuid userId FK
     }
 
     Task {
@@ -54,19 +84,29 @@ erDiagram
         uuid projectId FK
         string title
         string description
-        enum status
+        TaskStatus status
         uuid assignedToId FK
         uuid createdById FK
         datetime dueDate
         datetime createdAt
         datetime updatedAt
+        datetime deletedAt
+    }
+
+    FileAttachment {
+        uuid id PK
+        uuid taskId FK
+        string fileName
+        string fileUrl
+        int fileSize
+        datetime createdAt
     }
 
     Invitation {
         uuid id PK
         uuid organizationId FK
         string email
-        enum role
+        Role role
         string token UK
         uuid invitedById FK
         datetime expiresAt
@@ -77,9 +117,18 @@ erDiagram
     RefreshToken {
         uuid id PK
         uuid userId FK
-        string token UK
+        string tokenHash UK
         datetime expiresAt
         boolean revoked
+        datetime createdAt
+    }
+
+    Webhook {
+        uuid id PK
+        uuid organizationId FK
+        string url
+        string secret
+        WebhookEvent[] events
         datetime createdAt
     }
 
@@ -94,19 +143,27 @@ erDiagram
         datetime createdAt
     }
 
-    User ||--o{ OAuthAccount : "has"
-    User ||--o{ Membership : "has"
+    User ||--o{ Session : "has sessions"
+    User ||--o{ OAuthAccount : "has oauth"
+    User ||--o{ Membership : "has memberships"
     User ||--o{ Organization : "owns"
     User ||--o{ Project : "created"
     User ||--o{ Task : "created"
     User ||--o{ Task : "assigned to"
-    User ||--o{ RefreshToken : "has"
+    User ||--o{ RefreshToken : "has tokens"
     User ||--o{ AuditLog : "performed"
     User ||--o{ Invitation : "invited by"
+    User ||--o{ ProjectMember : "member of"
 
-    Organization ||--o{ Membership : "has"
-    Organization ||--o{ Project : "contains"
-    Organization ||--o{ Invitation : "has"
-    Organization ||--o{ AuditLog : "logged in"
+    Organization ||--o{ Membership : "has members"
+    Organization ||--o{ Project : "has projects"
+    Organization ||--o{ Invitation : "has invitations"
+    Organization ||--o{ AuditLog : "has logs"
+    Organization ||--o{ Webhook : "has webhooks"
+
+    Permission ||--o{ RolePermission : "granted to"
 
     Project ||--o{ Task : "contains"
+    Project ||--o{ ProjectMember : "has members"
+
+    Task ||--o{ FileAttachment : "has files"

@@ -1,17 +1,13 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-// ENUM
+// ENUMS
 
 enum OAuthProvider {
   google
@@ -30,7 +26,21 @@ enum TaskStatus {
   done
 }
 
-// User
+enum Plan {
+  free
+  pro
+  enterprise
+}
+
+enum WebhookEvent {
+  task_created
+  task_updated
+  member_invited
+}
+
+// =========================
+// USER & AUTH
+// =========================
 
 model User {
   id                     String    @id @default(uuid())
@@ -46,17 +56,41 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // relations
-  oauthAccounts   OAuthAccount[]
-  memberships     Membership[]
-  ownedOrgs       Organization[] @relation("OrgOwner")
-  createdProjects Project[]      @relation("ProjectCreator")
-  createdTasks    Task[]         @relation("TaskCreator")
-  assignedTasks   Task[]         @relation("TaskAssignee")
-  refreshTokens   RefreshToken[]
-  auditLogs       AuditLog[]
-  Invitation      Invitation[]
+  oauthAccounts OAuthAccount[]
+  memberships   Membership[]
+  ownedOrgs     Organization[] @relation("OrgOwner")
+
+  createdProjects Project[] @relation("ProjectCreator")
+  createdTasks    Task[]    @relation("TaskCreator")
+  assignedTasks   Task[]    @relation("TaskAssignee")
+
+  sessions      Session[]
+  refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]
+  invitations   Invitation[]
+  ProjectMember ProjectMember[]
 }
+
+// =========================
+// SESSION TRACKING (NEW)
+// =========================
+
+model Session {
+  id     String @id @default(uuid())
+  userId String
+
+  ipAddress String?
+  userAgent String?
+  lastSeen  DateTime @default(now())
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// =========================
+// OAUTH
+// =========================
 
 model OAuthAccount {
   id             String        @id @default(uuid())
@@ -73,6 +107,10 @@ model OAuthAccount {
   @@unique([provider, providerUserId])
 }
 
+// =========================
+// ORGANIZATION
+// =========================
+
 model Organization {
   id   String @id @default(uuid())
   name String
@@ -80,14 +118,22 @@ model Organization {
   ownerId String
   owner   User   @relation("OrgOwner", fields: [ownerId], references: [id])
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  plan Plan @default(free)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   memberships Membership[]
   projects    Project[]
   invitations Invitation[]
   auditLogs   AuditLog[]
+  webhooks    Webhook[]
 }
+
+// =========================
+// MEMBERSHIP + RBAC
+// =========================
 
 model Membership {
   id             String @id @default(uuid())
@@ -103,22 +149,68 @@ model Membership {
   @@unique([userId, organizationId])
 }
 
+// =========================
+// PERMISSIONS (PBAC - NEW)
+// =========================
+
+model Permission {
+  id             String           @id @default(uuid())
+  name           String           @unique // e.g. "task:update"
+  RolePermission RolePermission[]
+}
+
+model RolePermission {
+  id           String @id @default(uuid())
+  role         Role
+  permissionId String
+
+  permission Permission @relation(fields: [permissionId], references: [id])
+
+  @@unique([role, permissionId])
+}
+
+// =========================
+// PROJECTS
+// =========================
+
 model Project {
-  id             String  @id @default(uuid())
+  id             String @id @default(uuid())
   organizationId String
-  name           String
-  description    String?
+
+  name        String
+  description String?
 
   createdById String
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   createdBy    User         @relation("ProjectCreator", fields: [createdById], references: [id])
 
-  tasks Task[]
+  members ProjectMember[]
+  tasks   Task[]
 }
+
+// =========================
+// PROJECT MEMBERS (NEW)
+// =========================
+
+model ProjectMember {
+  id        String @id @default(uuid())
+  projectId String
+  userId    String
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+}
+
+// =========================
+// TASKS
+// =========================
 
 model Task {
   id        String @id @default(uuid())
@@ -133,14 +225,38 @@ model Task {
 
   dueDate DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   assignedTo User? @relation("TaskAssignee", fields: [assignedToId], references: [id])
   createdBy  User  @relation("TaskCreator", fields: [createdById], references: [id])
+
+  attachments FileAttachment[]
 }
+
+// =========================
+// FILE ATTACHMENTS (NEW)
+// =========================
+
+model FileAttachment {
+  id     String @id @default(uuid())
+  taskId String
+
+  fileName String
+  fileUrl  String
+  fileSize Int?
+
+  createdAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+// =========================
+// INVITATIONS
+// =========================
 
 model Invitation {
   id             String @id @default(uuid())
@@ -162,11 +278,15 @@ model Invitation {
   invitedBy    User         @relation(fields: [invitedById], references: [id])
 }
 
+// =========================
+// REFRESH TOKENS (SECURE)
+// =========================
+
 model RefreshToken {
   id     String @id @default(uuid())
   userId String
 
-  token     String   @unique
+  tokenHash String   @unique // 🔥 store hashed version
   expiresAt DateTime
   revoked   Boolean  @default(false)
 
@@ -174,6 +294,28 @@ model RefreshToken {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+// =========================
+// WEBHOOKS (NEW)
+// =========================
+
+model Webhook {
+  id             String @id @default(uuid())
+  organizationId String
+
+  url    String
+  secret String
+
+  events WebhookEvent[]
+
+  createdAt DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+// =========================
+// AUDIT LOGS
+// =========================
 
 model AuditLog {
   id String @id @default(uuid())
