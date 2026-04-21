@@ -202,4 +202,16 @@ export class AuthService {
       where: { userId },
     });
   }
+
+  static async deleteAccount(userId: string) {
+    await prisma.refreshToken.deleteMany({
+      where: { userId },
+    });
+
+    await prisma.user.delete({
+      where: { id: userId },
+    });
+
+    return "Account deleted successfully!";
+  }
 }

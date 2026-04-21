@@ -11,6 +11,7 @@ authRoutes.post("/verify-email", AuthController.verifyEmail);
 authRoutes.post("/forget-password", AuthController.forgetPassword);
 authRoutes.post("/reset-password", AuthController.resetPassword);
 authRoutes.post("/logout", AuthController.logout);
+authRoutes.delete("/delete-account", AuthController.deleteAccount);
 
 // OAuth routes
 authRoutes.post("/oauth/google", OAuthController.googleOAuth);

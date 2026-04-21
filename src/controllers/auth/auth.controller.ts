@@ -137,4 +137,25 @@ export class AuthController {
         .json({ status: "error", message: (error as Error).message });
     }
   }
+
+  static async deleteAccount(req: Request, res: Response) {
+    try {
+      const { userId } = req.body;
+      if (!userId) {
+        throw new ApiError("Unauthorized", 401);
+      }
+      await AuthService.deleteAccount(userId);
+      res.json({
+        status: "success",
+        data: {
+          message: "Account deleted successfully!",
+        },
+      });
+    } catch (error: any) {
+      const status = error.statusCode || 500;
+      res
+        .status(status)
+        .json({ status: "error", message: (error as Error).message });
+    }
+  }
 }
