@@ -1,0 +1,120 @@
+graph TB
+    subgraph AUTH["Authentication"]
+        direction TB
+        A1[Landing Page] --> A2{Returning User?}
+        A2 -->|No| A3[Register Screen]
+        A2 -->|Yes| A4[Login Screen]
+        A3 --> A3a[Email/Password Form]
+        A3 --> A3b[Google OAuth]
+        A3 --> A3c[GitHub OAuth]
+        A4 --> A4a[Email/Password Form]
+        A4 --> A4b[Google OAuth]
+        A4 --> A4c[GitHub OAuth]
+        A3a --> A5[Email Verification]
+        A4a --> A6[Dashboard]
+        A3b --> A6
+        A3c --> A6
+        A4b --> A6
+        A4c --> A6
+        A5 --> A6
+    end
+
+    subgraph ORG["Organization Management"]
+        direction TB
+        O1[Org Selector Dropdown] --> O2{Action}
+        O2 --> O3[Create New Org]
+        O2 --> O4[Switch Org]
+        O3 --> O3a[Org Name + Settings Form]
+        O3a --> O5[Org Dashboard]
+        O4 --> O5
+        O5 --> O6[Members List]
+        O5 --> O7[Org Settings]
+        O6 --> O6a[Invite Member]
+        O6 --> O6b[Change Role: Owner / Admin / Member]
+        O6 --> O6c[Remove Member]
+        O7 --> O7a[General Settings]
+        O7 --> O7b[Plan: Free / Pro / Enterprise]
+    end
+
+    subgraph INVITE["Invitation Flow"]
+        direction TB
+        I1[Invite via Email] --> I2[Invitation Email Sent]
+        I2 --> I3{User Exists?}
+        I3 -->|Yes| I4[Accept / Decline Screen]
+        I3 -->|No| I5[Register then Accept]
+        I4 --> I6[Added to Org]
+        I5 --> I6
+    end
+
+    subgraph PROJECTS["Project Management"]
+        direction TB
+        P1[Projects List View] --> P2{Action}
+        P2 --> P3[Create Project]
+        P2 --> P4[Open Project]
+        P2 --> P5[Delete Project - Soft Delete]
+        P3 --> P3a[Project Name + Description Form]
+        P3a --> P6[Project Board]
+        P4 --> P6
+        P5 --> P5a[Trash / Restore View]
+        P6 --> P7[Assign Members to Project]
+        P6 --> P8[Project Settings]
+    end
+
+    subgraph TASKS["Task Management"]
+        direction TB
+        T1[Task Board - Kanban] --> T1a[Todo Column]
+        T1 --> T1b[In Progress Column]
+        T1 --> T1c[Done Column]
+        T1 --> T2[Create Task]
+        T2 --> T2a[Task Title + Description]
+        T2a --> T2b[Assign User]
+        T2b --> T2c[Attach Files]
+        T2c --> T3[Task Card on Board]
+        T3 --> T4{Task Actions}
+        T4 --> T4a[Drag to Change Status]
+        T4 --> T4b[Edit Details]
+        T4 --> T4c[Add Attachments]
+        T4 --> T4d[Delete - Soft Delete]
+    end
+
+    subgraph RBAC["Permissions Layer"]
+        direction TB
+        R1[Role Check Middleware] --> R2{User Role}
+        R2 -->|Owner| R3[Full Access]
+        R2 -->|Admin| R4[project:create task:update member:invite]
+        R2 -->|Member| R5[task:update task:assign]
+    end
+
+    subgraph SESSIONS["Session Management"]
+        direction TB
+        S1[Profile / Settings] --> S2[Active Sessions List]
+        S2 --> S3[Device + IP + Last Active]
+        S2 --> S4[Logout Single Session]
+        S2 --> S5[Logout All Sessions]
+        S1 --> S6[Link OAuth Account]
+    end
+
+    subgraph AUDIT["Audit Log"]
+        direction TB
+        AL1[Audit Log View] --> AL2[Filterable Event List]
+        AL2 --> AL3[Task Events]
+        AL2 --> AL4[Member Events]
+        AL2 --> AL5[Role Change Events]
+    end
+
+    subgraph REALTIME["Real-Time Updates"]
+        direction TB
+        RT1[WebSocket Connection] --> RT2[Task Update Notifications]
+        RT1 --> RT3[Member Activity Indicators]
+    end
+
+    A6 --> ORG
+    O5 --> PROJECTS
+    O6a --> INVITE
+    P6 --> TASKS
+    RBAC -.->|Guards all actions| ORG
+    RBAC -.->|Guards all actions| PROJECTS
+    RBAC -.->|Guards all actions| TASKS
+    S1 -.-> AUTH
+    O5 --> AUDIT
+    REALTIME -.->|Live updates| TASKS

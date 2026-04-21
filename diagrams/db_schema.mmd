@@ -1,0 +1,112 @@
+erDiagram
+    User {
+        uuid id PK
+        string email UK
+        string passwordHash
+        string fullName
+        string avatarUrl
+        string emailVerificationToken
+        boolean isEmailVerified
+        string resetPasswordToken
+        datetime resetPasswordExpires
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    OAuthAccount {
+        uuid id PK
+        uuid userId FK
+        enum provider
+        string providerUserId
+        string accessToken
+        string refreshToken
+        datetime createdAt
+    }
+
+    Organization {
+        uuid id PK
+        string name
+        uuid ownerId FK
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    Membership {
+        uuid id PK
+        uuid userId FK
+        uuid organizationId FK
+        enum role
+        datetime joinedAt
+    }
+
+    Project {
+        uuid id PK
+        uuid organizationId FK
+        string name
+        string description
+        uuid createdById FK
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    Task {
+        uuid id PK
+        uuid projectId FK
+        string title
+        string description
+        enum status
+        uuid assignedToId FK
+        uuid createdById FK
+        datetime dueDate
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    Invitation {
+        uuid id PK
+        uuid organizationId FK
+        string email
+        enum role
+        string token UK
+        uuid invitedById FK
+        datetime expiresAt
+        datetime acceptedAt
+        datetime createdAt
+    }
+
+    RefreshToken {
+        uuid id PK
+        uuid userId FK
+        string token UK
+        datetime expiresAt
+        boolean revoked
+        datetime createdAt
+    }
+
+    AuditLog {
+        uuid id PK
+        uuid userId FK
+        uuid organizationId FK
+        string action
+        string entityType
+        string entityId
+        json metadata
+        datetime createdAt
+    }
+
+    User ||--o{ OAuthAccount : "has"
+    User ||--o{ Membership : "has"
+    User ||--o{ Organization : "owns"
+    User ||--o{ Project : "created"
+    User ||--o{ Task : "created"
+    User ||--o{ Task : "assigned to"
+    User ||--o{ RefreshToken : "has"
+    User ||--o{ AuditLog : "performed"
+    User ||--o{ Invitation : "invited by"
+
+    Organization ||--o{ Membership : "has"
+    Organization ||--o{ Project : "contains"
+    Organization ||--o{ Invitation : "has"
+    Organization ||--o{ AuditLog : "logged in"
+
+    Project ||--o{ Task : "contains"
