@@ -13,7 +13,7 @@ export async function issueTokens(userId: string) {
 
   await prisma.refreshToken.create({
     data: {
-      token: refreshToken,
+      tokenHash: refreshToken,
       expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
       user: { connect: { id: userId } },
     },

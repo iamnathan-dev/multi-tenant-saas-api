@@ -11,7 +11,7 @@ export class EmailService {
     const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
 
     const compiledFunction = pug.compileFile(
-      path.join(__dirname, `../views/email-verification.pug`),
+      path.join(__dirname, `../../views/email-verification.pug`),
     );
 
     const html = compiledFunction({ verificationUrl });

@@ -85,7 +85,7 @@ export class AuthService {
     }
 
     const tokenRecord = await prisma.refreshToken.findFirst({
-      where: { token: oldRefreshToken },
+      where: { tokenHash: oldRefreshToken },
       include: { user: true },
     });
 
