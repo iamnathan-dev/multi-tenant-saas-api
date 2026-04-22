@@ -3,8 +3,16 @@ import { ApiError } from "@/util/ApiError";
 
 export class OrganizationService {
   static async createOrganization(name: string, userId: string) {
-    if (!name) {
-      throw new ApiError("Organization name is required", 400);
+    if (!name || !userId) {
+      throw new ApiError("Organization name and user ID are required", 400);
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new ApiError("User not found", 404);
     }
 
     const organization = await prisma.organization.create({
