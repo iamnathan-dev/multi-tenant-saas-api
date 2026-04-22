@@ -197,6 +197,41 @@ export class AuthService {
     return "Password has been reset successfully!";
   }
 
+  static async resendVerificationEmail(email: string) {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!email) {
+      throw new ApiError("Email is required", 400);
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new ApiError("User not found", 404);
+    }
+
+    if (user.isEmailVerified) {
+      throw new ApiError("Email is already verified", 400);
+    }
+
+    const emailVerificationToken = generateEmailVerificationToken(email);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerificationToken,
+      },
+    });
+
+    EmailService.sendVerificationEmail(
+      normalizedEmail,
+      emailVerificationToken,
+    ).catch(console.error);
+
+    return "Verification email resent! Please check your inbox.";
+  }
+
   static async logout(userId: string) {
     return prisma.refreshToken.deleteMany({
       where: { userId },

@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import { ApiError } from "./ApiError";
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET!;
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET!;
@@ -28,4 +29,14 @@ export const generatePasswordResetToken = () => {
     .digest("hex");
 
   return { hashedToken, rawToken };
+};
+
+export const verifyToken = (token: string) => {
+  try {
+    return jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as {
+      userId: string;
+    };
+  } catch (err) {
+    throw new ApiError("Invalid verification token", 400);
+  }
 };
