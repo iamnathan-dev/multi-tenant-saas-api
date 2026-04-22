@@ -1,3 +1,4 @@
+import { Route } from "@/constant/constant";
 import { AuthController } from "@/controllers/auth/auth.controller.js";
 import { OAuthController } from "@/controllers/auth/oauth.controller";
 import { protectedRouteMiddleware } from "@/middleware/authentication.middleware";
@@ -5,30 +6,62 @@ import { Router } from "express";
 
 const authRoutes: Router = Router();
 
-authRoutes.post("/login", AuthController.login);
-authRoutes.post("/register", AuthController.register);
-authRoutes.post(
-  "/refresh-token",
-  protectedRouteMiddleware,
-  AuthController.refreshToken,
-);
-authRoutes.post("/verify-email", AuthController.verifyEmail);
-authRoutes.post(
-  "/resend-verification-email",
-  AuthController.resendVerificationEmail,
-);
-authRoutes.post("/forget-password", AuthController.forgetPassword);
-authRoutes.post("/reset-password", AuthController.resetPassword);
-authRoutes.post("/logout", AuthController.logout);
-authRoutes.delete(
-  "/delete-account",
-  protectedRouteMiddleware,
-  AuthController.deleteAccount,
-);
+const routes: Route[] = [
+  // Auth routes
+  { method: "post", path: "/login", handlers: [AuthController.login] },
+  { method: "post", path: "/register", handlers: [AuthController.register] },
+  {
+    method: "post",
+    path: "/refresh-token",
+    handlers: [AuthController.refreshToken],
+  },
+  {
+    method: "post",
+    path: "/verify-email",
+    handlers: [AuthController.verifyEmail],
+  },
+  {
+    method: "post",
+    path: "/resend-verification-email",
+    handlers: [AuthController.resendVerificationEmail],
+  },
+  {
+    method: "post",
+    path: "/forget-password",
+    handlers: [AuthController.forgetPassword],
+  },
+  {
+    method: "post",
+    path: "/reset-password",
+    handlers: [AuthController.resetPassword],
+  },
+  { method: "post", path: "/logout", handlers: [AuthController.logout] },
+  {
+    method: "delete",
+    path: "/delete-account",
+    handlers: [protectedRouteMiddleware, AuthController.deleteAccount],
+  },
 
-// OAuth routes
-authRoutes.post("/oauth/google", OAuthController.googleOAuth);
-authRoutes.get("/oauth/github/callback", OAuthController.githubCallback);
-authRoutes.get("/oauth/github/redirect", OAuthController.githubRedirect);
+  // OAuth routes
+  {
+    method: "post",
+    path: "/oauth/google",
+    handlers: [OAuthController.googleOAuth],
+  },
+  {
+    method: "get",
+    path: "/oauth/github/callback",
+    handlers: [OAuthController.githubCallback],
+  },
+  {
+    method: "get",
+    path: "/oauth/github/redirect",
+    handlers: [OAuthController.githubRedirect],
+  },
+];
+
+routes.forEach(({ method, path, handlers }) => {
+  authRoutes[method](path, ...handlers);
+});
 
 export default authRoutes;

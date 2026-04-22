@@ -1,5 +1,6 @@
 import { prisma } from "@/prisma/client";
 import { ApiError } from "@/util/ApiError";
+import { sanitizeUser } from "@/util/auth";
 
 export class OrganizationService {
   static async createOrganization(name: string, userId: string) {
@@ -41,5 +42,52 @@ export class OrganizationService {
     });
 
     return organization;
+  }
+
+  static async getAllUsersOrganizations(userId: string) {
+    if (!userId) {
+      throw new ApiError("User ID is required", 400);
+    }
+
+    const memberships = await prisma.membership.findMany({
+      where: { userId },
+      include: {
+        organization: {
+          include: {
+            owner: true,
+          },
+        },
+      },
+    });
+
+    const sanitiedMemberships = memberships.map((membership) => {
+      const { organization } = membership;
+      const { owner, ...sanitizedOrg } = organization;
+      return {
+        ...sanitizedOrg,
+        owner: sanitizeUser(owner),
+      };
+    });
+
+    return sanitiedMemberships;
+  }
+
+  static async getOrganizationById(orgId: string) {
+    const organization = await prisma.organization.findUnique({
+      where: { id: orgId },
+      include: {
+        owner: true,
+      },
+    });
+
+    if (!organization) {
+      throw new ApiError("Organization not found", 404);
+    }
+
+    const { owner, ...sanitizedOrg } = organization;
+    return {
+      ...sanitizedOrg,
+      owner: sanitizeUser(owner),
+    };
   }
 }
