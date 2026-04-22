@@ -4,6 +4,7 @@ import { prisma } from "./prisma/client";
 import { errorHandler } from "./middleware/errorHandler.middleware.js";
 import authRoutes from "./routes/auth.routes.js";
 import { transporter } from "./config/nodemailer.config";
+import organizationRoutes from "./routes/organization.routes";
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 3000;
 
 app.use("/api/auth", authRoutes);
+app.use("/api/org", organizationRoutes);
 
 const start = async () => {
   try {
