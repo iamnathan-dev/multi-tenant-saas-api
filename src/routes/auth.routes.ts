@@ -1,80 +1,84 @@
 import { Route } from "@/constant/constant";
+import { METHOD } from "@/constant/methods.constant";
+import { rateLimits } from "@/constant/rateLimits.constant";
 import { AuthController } from "@/controllers/auth/auth.controller.js";
 import { OAuthController } from "@/controllers/auth/oauth.controller";
-import { protectedRouteMiddleware } from "@/middleware/authentication.middleware";
-import { rateLimitter } from "@/middleware/rate-limitter.middleware";
+import { protectedRoute } from "@/util/protected";
+import { withRateLimit } from "@/util/withRateLimit";
 import { Router } from "express";
 
 const authRoutes: Router = Router();
 
 const routes: Route[] = [
-  // Auth routes
   {
-    method: "post",
+    method: METHOD.POST,
     path: "/login",
-    handlers: [
-      rateLimitter({ capacity: 5, refillRate: 0.1 }),
-      AuthController.login,
-    ],
+    handlers: withRateLimit(rateLimits.STRICT, AuthController.login),
   },
   {
-    method: "post",
+    method: METHOD.POST,
     path: "/register",
-    handlers: [
-      rateLimitter({ capacity: 10, refillRate: 0.2 }),
-      AuthController.register,
-    ],
+    handlers: withRateLimit(rateLimits.STRICT, AuthController.register),
   },
   {
-    method: "post",
+    method: METHOD.POST,
     path: "/refresh-token",
-    handlers: [AuthController.refreshToken],
+    handlers: withRateLimit(rateLimits.RELAXED, AuthController.refreshToken),
   },
   {
-    method: "post",
+    method: METHOD.POST,
     path: "/verify-email",
-    handlers: [AuthController.verifyEmail],
+    handlers: withRateLimit(rateLimits.STRICT, AuthController.verifyEmail),
   },
   {
-    method: "post",
+    method: METHOD.POST,
     path: "/resend-verification-email",
-    handlers: [AuthController.resendVerificationEmail],
+    handlers: withRateLimit(
+      rateLimits.VERY_STRICT,
+      AuthController.resendVerificationEmail,
+    ),
   },
   {
-    method: "post",
+    method: METHOD.POST,
     path: "/forget-password",
-    handlers: [
-      rateLimitter({ capacity: 3, refillRate: 0.05 }),
-      AuthController.forgetPassword,
-    ],
+    handlers: withRateLimit(rateLimits.PASSWORD, AuthController.forgetPassword),
   },
   {
-    method: "post",
+    method: METHOD.POST,
     path: "/reset-password",
-    handlers: [AuthController.resetPassword],
+    handlers: withRateLimit(rateLimits.STRICT, AuthController.resetPassword),
   },
-  { method: "post", path: "/logout", handlers: [AuthController.logout] },
   {
-    method: "delete",
+    method: METHOD.POST,
+    path: "/logout",
+    handlers: withRateLimit(rateLimits.LOOSE, AuthController.logout),
+  },
+  {
+    method: METHOD.DELETE,
     path: "/delete-account",
-    handlers: [protectedRouteMiddleware, AuthController.deleteAccount],
+    handlers: protectedRoute(
+      ...withRateLimit(
+        { capacity: 5, refillRate: 0.2 },
+        AuthController.deleteAccount,
+      ),
+    ),
   },
 
-  // OAuth routes
+  // OAuth
   {
-    method: "post",
+    method: METHOD.POST,
     path: "/oauth/google",
-    handlers: [OAuthController.googleOAuth],
+    handlers: withRateLimit(rateLimits.OAUTH, OAuthController.googleOAuth),
   },
   {
-    method: "get",
+    method: METHOD.GET,
     path: "/oauth/github/callback",
-    handlers: [OAuthController.githubCallback],
+    handlers: withRateLimit(rateLimits.OAUTH, OAuthController.githubCallback),
   },
   {
-    method: "get",
+    method: METHOD.GET,
     path: "/oauth/github/redirect",
-    handlers: [OAuthController.githubRedirect],
+    handlers: withRateLimit(rateLimits.OAUTH, OAuthController.githubRedirect),
   },
 ];
 

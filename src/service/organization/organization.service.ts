@@ -90,4 +90,35 @@ export class OrganizationService {
       owner: sanitizeUser(owner),
     };
   }
+
+  static async updateOrganization(orgId: string, name: string) {
+    if (!name) {
+      throw new ApiError("Organization name is required", 400);
+    }
+
+    const organization = await prisma.organization.findUnique({
+      where: { id: orgId },
+    });
+
+    if (!organization) {
+      throw new ApiError("Organization not found", 404);
+    }
+
+    const updatedOrg = await prisma.organization.update({
+      where: { id: orgId },
+      data: { name },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        organizationId: orgId,
+        userId: updatedOrg.ownerId,
+        action: "update_organization",
+        entityType: "organization",
+        entityId: orgId,
+      },
+    });
+
+    return updatedOrg;
+  }
 }

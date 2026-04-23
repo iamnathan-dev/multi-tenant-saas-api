@@ -54,4 +54,22 @@ export class OrganizationController {
         .json({ status: "error", message: (error as Error).message });
     }
   }
+
+  static async updateOrganization(req: Request, res: Response) {
+    const { organizationId } = req.params;
+    const { name } = req.body;
+
+    try {
+      const updatedOrganization = await OrganizationService.updateOrganization(
+        organizationId as string,
+        name,
+      );
+      return res.json({ status: "success", data: updatedOrganization });
+    } catch (error: any) {
+      const status = error.statusCode || 500;
+      res
+        .status(status)
+        .json({ status: "error", message: (error as Error).message });
+    }
+  }
 }
