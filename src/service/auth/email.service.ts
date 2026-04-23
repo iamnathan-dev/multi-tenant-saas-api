@@ -30,7 +30,7 @@ export class EmailService {
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
 
     const compiledFunction = pug.compileFile(
-      path.join(__dirname, `../views/password-reset.pug`),
+      path.join(__dirname, `../../views/password-reset.pug`),
     );
 
     const html = compiledFunction({ resetUrl });
