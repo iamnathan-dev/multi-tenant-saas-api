@@ -50,7 +50,12 @@ export class OrganizationService {
     }
 
     const memberships = await prisma.membership.findMany({
-      where: { userId },
+      where: {
+        userId,
+        organization: {
+          deletedAt: null,
+        },
+      },
       include: {
         organization: {
           include: {
@@ -97,7 +102,7 @@ export class OrganizationService {
     }
 
     const organization = await prisma.organization.findUnique({
-      where: { id: orgId },
+      where: { id: orgId, deletedAt: null },
     });
 
     if (!organization) {
@@ -120,5 +125,32 @@ export class OrganizationService {
     });
 
     return updatedOrg;
+  }
+
+  static async deleteOrganization(orgId: string) {
+    const organization = await prisma.organization.findUnique({
+      where: { id: orgId },
+    });
+
+    if (!organization) {
+      throw new ApiError("Organization not found", 404);
+    }
+
+    await prisma.organization.update({
+      where: { id: orgId },
+      data: { deletedAt: new Date() },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        organizationId: orgId,
+        userId: organization.ownerId,
+        action: "delete_organization",
+        entityType: "organization",
+        entityId: orgId,
+      },
+    });
+
+    return { message: "Organization deleted successfully" };
   }
 }

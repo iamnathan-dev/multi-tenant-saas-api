@@ -59,12 +59,30 @@ export class OrganizationController {
     const { organizationId } = req.params;
     const { name } = req.body;
 
+    console.log("Updating organization:", { organizationId, name });
+
     try {
       const updatedOrganization = await OrganizationService.updateOrganization(
         organizationId as string,
         name,
       );
       return res.json({ status: "success", data: updatedOrganization });
+    } catch (error: any) {
+      const status = error.statusCode || 500;
+      res
+        .status(status)
+        .json({ status: "error", message: (error as Error).message });
+    }
+  }
+
+  static async deleteOrganization(req: Request, res: Response) {
+    const { organizationId } = req.params;
+
+    try {
+      const result = await OrganizationService.deleteOrganization(
+        organizationId as string,
+      );
+      return res.status(204);
     } catch (error: any) {
       const status = error.statusCode || 500;
       res

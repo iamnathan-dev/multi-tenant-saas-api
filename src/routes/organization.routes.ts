@@ -20,7 +20,7 @@ const routes: Route[] = [
     ),
   },
   {
-    method: METHOD.PUT,
+    method: METHOD.GET,
     path: "/:organizationId",
     handlers: protectedRoute(
       ...withRateLimit(
@@ -54,8 +54,18 @@ const routes: Route[] = [
     path: "/:organizationId",
     handlers: protectedRoute(
       ...withRateLimit(
-        { capacity: 5, refillRate: 1 },
+        { capacity: 2, refillRate: 1 },
         OrganizationController.updateOrganization,
+      ),
+    ),
+  },
+  {
+    method: METHOD.DELETE,
+    path: "/:organizationId",
+    handlers: protectedRoute(
+      ...withRateLimit(
+        { capacity: 2, refillRate: 0.5 },
+        OrganizationController.deleteOrganization,
       ),
     ),
   },
