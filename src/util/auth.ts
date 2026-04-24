@@ -7,6 +7,26 @@ export function sanitizeUser<T extends { passwordHash?: unknown }>(user: T) {
   return safeUser;
 }
 
+export function sanitizeOrganizationUser<
+  T extends {
+    passwordHash?: unknown;
+    emailVerificationToken?: unknown;
+    isEmailVerified?: unknown;
+    resetPasswordToken?: unknown;
+    resetPasswordExpires?: unknown;
+  },
+>(user: T) {
+  const {
+    passwordHash,
+    emailVerificationToken,
+    isEmailVerified,
+    resetPasswordToken,
+    resetPasswordExpires,
+    ...safeUser
+  } = user;
+  return safeUser;
+}
+
 export async function issueTokens(userId: string) {
   const accessToken = generateAccessToken(userId);
   const refreshToken = generateRefreshToken(userId);

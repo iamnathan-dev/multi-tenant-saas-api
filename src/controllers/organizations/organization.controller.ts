@@ -82,7 +82,7 @@ export class OrganizationController {
       const result = await OrganizationService.deleteOrganization(
         organizationId as string,
       );
-      return res.status(204);
+      return res.status(204).json({ status: "success", message: result });
     } catch (error: any) {
       const status = error.statusCode || 500;
       res

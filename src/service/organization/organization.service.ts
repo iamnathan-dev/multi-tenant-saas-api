@@ -1,6 +1,6 @@
 import { prisma } from "@/prisma/client";
 import { ApiError } from "@/util/ApiError";
-import { sanitizeUser } from "@/util/auth";
+import { sanitizeOrganizationUser } from "@/util/auth";
 
 export class OrganizationService {
   static async createOrganization(name: string, userId: string) {
@@ -70,7 +70,7 @@ export class OrganizationService {
       const { owner, ...sanitizedOrg } = organization;
       return {
         ...sanitizedOrg,
-        owner: sanitizeUser(owner),
+        owner: sanitizeOrganizationUser(owner),
       };
     });
 
@@ -92,7 +92,7 @@ export class OrganizationService {
     const { owner, ...sanitizedOrg } = organization;
     return {
       ...sanitizedOrg,
-      owner: sanitizeUser(owner),
+      owner: sanitizeOrganizationUser(owner),
     };
   }
 
@@ -129,7 +129,7 @@ export class OrganizationService {
 
   static async deleteOrganization(orgId: string) {
     const organization = await prisma.organization.findUnique({
-      where: { id: orgId },
+      where: { id: orgId, deletedAt: null },
     });
 
     if (!organization) {
